@@ -297,14 +297,6 @@ func TestSASLOAuthBearer(t *testing.T) {
 
 			// broker executes SASL requests against mockBroker
 			broker := NewBroker(mockBroker.Addr())
-			broker.requestRate = metrics.NilMeter{}
-			broker.outgoingByteRate = metrics.NilMeter{}
-			broker.incomingByteRate = metrics.NilMeter{}
-			broker.requestSize = metrics.NilHistogram{}
-			broker.responseSize = metrics.NilHistogram{}
-			broker.responseRate = metrics.NilMeter{}
-			broker.requestLatency = metrics.NilHistogram{}
-			broker.requestsInFlight = metrics.NilCounter{}
 
 			conf := NewTestConfig()
 			conf.Net.SASL.Mechanism = SASLTypeOAuth
@@ -406,14 +398,6 @@ func TestSASLSCRAMSHAXXX(t *testing.T) {
 			mockBroker := NewMockBroker(t, 0)
 			broker := NewBroker(mockBroker.Addr())
 			// broker executes SASL requests against mockBroker
-			broker.requestRate = metrics.NilMeter{}
-			broker.outgoingByteRate = metrics.NilMeter{}
-			broker.incomingByteRate = metrics.NilMeter{}
-			broker.requestSize = metrics.NilHistogram{}
-			broker.responseSize = metrics.NilHistogram{}
-			broker.responseRate = metrics.NilMeter{}
-			broker.requestLatency = metrics.NilHistogram{}
-			broker.requestsInFlight = metrics.NilCounter{}
 
 			mockSASLAuthResponse := NewMockSaslAuthenticateResponse(t).SetAuthBytes([]byte(test.scramChallengeResp))
 			mockSASLHandshakeResponse := NewMockSaslHandshakeResponse(t).SetEnabledMechanisms([]string{SASLTypeSCRAMSHA256, SASLTypeSCRAMSHA512})
@@ -524,14 +508,6 @@ func TestSASLPlainAuth(t *testing.T) {
 
 			// broker executes SASL requests against mockBroker
 			broker := NewBroker(mockBroker.Addr())
-			broker.requestRate = metrics.NilMeter{}
-			broker.outgoingByteRate = metrics.NilMeter{}
-			broker.incomingByteRate = metrics.NilMeter{}
-			broker.requestSize = metrics.NilHistogram{}
-			broker.responseSize = metrics.NilHistogram{}
-			broker.responseRate = metrics.NilMeter{}
-			broker.requestLatency = metrics.NilHistogram{}
-			broker.requestsInFlight = metrics.NilCounter{}
 
 			conf := NewTestConfig()
 			conf.Net.SASL.Mechanism = SASLTypePlaintext
@@ -601,16 +577,6 @@ func TestSASLReadTimeout(t *testing.T) {
 	})
 
 	broker := NewBroker(mockBroker.Addr())
-	{
-		broker.requestRate = metrics.NilMeter{}
-		broker.outgoingByteRate = metrics.NilMeter{}
-		broker.incomingByteRate = metrics.NilMeter{}
-		broker.requestSize = metrics.NilHistogram{}
-		broker.responseSize = metrics.NilHistogram{}
-		broker.responseRate = metrics.NilMeter{}
-		broker.requestLatency = metrics.NilHistogram{}
-		broker.requestsInFlight = metrics.NilCounter{}
-	}
 
 	conf := NewTestConfig()
 	{
@@ -695,14 +661,6 @@ func TestGSSAPIKerberosAuth_Authorize(t *testing.T) {
 				return nil
 			})
 			broker := NewBroker(mockBroker.Addr())
-			broker.requestRate = metrics.NilMeter{}
-			broker.outgoingByteRate = metrics.NilMeter{}
-			broker.incomingByteRate = metrics.NilMeter{}
-			broker.requestSize = metrics.NilHistogram{}
-			broker.responseSize = metrics.NilHistogram{}
-			broker.responseRate = metrics.NilMeter{}
-			broker.requestLatency = metrics.NilHistogram{}
-			broker.requestsInFlight = metrics.NilCounter{}
 
 			conf := NewTestConfig()
 			conf.Net.SASL.Mechanism = SASLTypeGSSAPI
@@ -1485,8 +1443,6 @@ func Test_handleThrottledResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			broker.metricRegistry = metrics.NewRegistry()
-			broker.brokerThrottleTime = broker.registerHistogram("throttle-time-in-ms")
 			startTime := time.Now()
 			broker.handleThrottledResponse(tt.response)
 			broker.waitIfThrottled()
@@ -1494,22 +1450,14 @@ func Test_handleThrottledResponse(t *testing.T) {
 				if time.Since(startTime) < throttleTime {
 					t.Fatal("expected throttling to cause delay")
 				}
-				if broker.brokerThrottleTime.Min() != int64(throttleTimeMs) {
-					t.Fatal("expected throttling to update metrics")
-				}
 			} else {
 				if time.Since(startTime) > throttleTime {
 					t.Fatal("expected no throttling delay")
-				}
-				if broker.brokerThrottleTime.Count() != 0 {
-					t.Fatal("expected no metrics update")
 				}
 			}
 		})
 	}
 	t.Run("test second throttle timer overrides first", func(t *testing.T) {
-		broker.metricRegistry = metrics.NewRegistry()
-		broker.brokerThrottleTime = broker.registerHistogram("throttle-time-in-ms")
 		broker.handleThrottledResponse(&MetadataResponse{
 			ThrottleTimeMs: int32(throttleTimeMs),
 		})
@@ -1524,12 +1472,6 @@ func Test_handleThrottledResponse(t *testing.T) {
 		broker.waitIfThrottled()
 		if time.Since(startTime) < throttleTime*2 {
 			t.Fatal("expected throttling to use second delay")
-		}
-		if broker.brokerThrottleTime.Min() != int64(throttleTimeMs) {
-			t.Fatal("expected throttling to update metrics")
-		}
-		if broker.brokerThrottleTime.Max() != int64(throttleTimeMs*2) {
-			t.Fatal("expected throttling to update metrics")
 		}
 	})
 }
